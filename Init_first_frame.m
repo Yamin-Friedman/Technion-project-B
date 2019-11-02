@@ -1,19 +1,21 @@
-function [prevPoints,prevFeatures,vSet] = Init_first_frame(camera,frame)
+function [prevPoints,prevFeatures,vSet,intrinsics_vector] = Init_first_frame(camera,frame)
 %Init_first_frame Starts the construction of the camera placement
 
     load_intrinsics;
     masks = Load_masks_file(camera);
 
-    I = Load_camera_frame(camera,5 + frame);
+    I = Load_camera_frame(camera,4 + frame);
     mask = masks(:,:,frame);
     cameraParam = cameraParameters('IntrinsicMatrix',camera_intrinsics(:,:,camera + 1)','ImageSize',size(I));
+    intrinsics = cameraIntrinsics(cameraParam.FocalLength,cameraParam.PrincipalPoint,size(I));
+    intrinsics_vector = [intrinsics];
 
     I = Fix_image(I,mask,cameraParam);
 
     border = 10;
     roi = [border, border, size(I, 2)- 2*border, size(I, 1)- 2*border];
-    %prevPoints   = detectSURFFeatures(I, 'NumOctaves', 8, 'ROI', roi,'MetricThreshold',1000);
-    prevPoints   = detectKAZEFeatures(I);
+    prevPoints   = detectSURFFeatures(I, 'NumOctaves', 8, 'ROI', roi,'MetricThreshold',500);
+%     prevPoints   = detectKAZEFeatures(I);
 
     % Remove invalid points
 %     yloc = prevPoints.Location(:,1);

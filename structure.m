@@ -1,33 +1,29 @@
 clc;
-
+figure;
 bar = waitbar(0,"progress");
-camera = 3;
-frame = 2;
-num_frames = 2;
 
-[prevPoints,prevFeatures,vSet] = Init_first_frame(camera,frame);
+% setup params
+start_camera = 0;%Starting camera
+num_camera = 1;
+start_frame = 7;%Starting frame
+num_frames = 0;%Number of frames to traverse
+direction = 1;%Direction of traversal
+frame_jump = 2;%Number of frames to skip
 
-%[prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frames_to_set_by_camera_arc(frame,num_frames,prevPoints,prevFeatures,vSet);
+[prevPoints,prevFeatures,vSet,intrinsics_vector] = Init_first_frame(start_camera,start_frame - 2);
 
-for frame = 5:3:20
-    waitbar(frame/(55),bar);
-    [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frame_to_set(camera,frame,prevPoints,prevFeatures,vSet);
-end
-% camera = 2;
-% for frame = 7:-1:2
-%     waitbar(frame/(55),bar);
-%     [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frame_to_set(camera,frame,prevPoints,prevFeatures,vSet);
-% end
-% camera = 3;
-% for frame = 2:7
-%     waitbar(frame/(55),bar);
-%     [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frame_to_set(camera,frame,prevPoints,prevFeatures,vSet);
-% end
+[prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors,intrinsics_vector] = Add_frames_to_set_single_camera(start_camera,start_frame,num_frames,frame_jump,direction,prevPoints,prevFeatures,vSet,intrinsics_vector);
+%[prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors,intrinsics_vector] = Add_frames_to_set_single_frame(start_frame + (frame_jump * num_frames) + 2,start_camera,num_camera,direction,prevPoints,prevFeatures,vSet,intrinsics_vector);
+%[prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors,intrinsics_vector] = Add_frames_to_set_single_camera(start_camera + num_camera,start_frame + (frame_jump * num_frames),num_frames,frame_jump,-direction,prevPoints,prevFeatures,vSet,intrinsics_vector);
+% [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frames_to_set_by_camera_arc(frame,num_frames,prevPoints,prevFeatures,vSet);
 waitbar(1,bar);
 
+% reference
+% [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] =
+% Add_frames_to_set_single_frame(frame,start_camera,num_camera,direction,prevPoints,prevFeatures,vSet,intrinsics_vector);
 %%
 bar = waitbar(0,"progress");
-camera = 0;
+camera = 3;
 frame = 2;
 [tracker,vSet,prevPoints] = Init_tracker(camera,frame,vSet);
 vSet_num = 1;
@@ -51,31 +47,7 @@ end
 waitbar(1,bar);
 
 %%
-% Display camera poses.
-camPoses = poses(vSet);
-figure;
-plotCamera(camPoses, 'Size', 0.2);
-hold on
-
-% Exclude noisy 3-D points.
-%goodIdx = (reprojectionErrors < 5);
-%xyzPoints = xyzPoints(goodIdx, :);
-
-% Display the 3-D points.
-pcshow(xyzPoints, 'VerticalAxis', 'y', 'VerticalAxisDir', 'down', ...
-    'MarkerSize', 45);
-grid on
-hold off
-
-% Specify the viewing volume.
-loc1 = camPoses.Location{1};
-xlim([loc1(1)-5, loc1(1)+4]);
-ylim([loc1(2)-5, loc1(2)+4]);
-zlim([loc1(3)-1, loc1(3)+20]);
-camorbit(0, -30);
-
-title('Refined Camera Poses');
-
+[xyzPoints] = show_camera_locations(vSet,xyzPoints,reprojectionErrors);
 %%
 
 % Find point tracks across all views.

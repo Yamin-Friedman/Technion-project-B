@@ -1,36 +1,44 @@
-function [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frame_to_set(camera,frame,prevPoints,prevFeatures,vSet)
+function [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors,intrinsics_vector] = Add_frame_to_set(camera,frame,prevPoints,prevFeatures,vSet,intrinsics_vector)
 %Add_frame_to_set Adds a new frame to the camera set
 
     masks = Load_masks_file(camera);
 
-    I = Load_camera_frame(camera,5 + frame);
+    I = Load_camera_frame(camera,4 + frame);
     mask = masks(:,:,frame);
     
     load_intrinsics;
     cameraParam = cameraParameters('IntrinsicMatrix',camera_intrinsics(:,:,camera + 1)','ImageSize',size(I));
     intrinsics = cameraIntrinsics(cameraParam.FocalLength,cameraParam.PrincipalPoint,size(I));
+    intrinsics_vector = [intrinsics_vector; intrinsics];
 
     I = Fix_image(I,mask,cameraParam);
     
     % Detect, extract and match features.
     border = 10;
     roi = [border, border, size(I, 2)- 2*border, size(I, 1)- 2*border];
-    %currPoints   = detectSURFFeatures(I, 'NumOctaves', 8, 'ROI', roi,'MetricThreshold',1000);
-    currPoints   = detectKAZEFeatures(I);
-%     yloc = currPoints.Location(:,1);
-%     xloc = currPoints.Location(:,2);
-%     locs = [];
-%     for i = 1:length(xloc)
-%         for x = -5:5
-%             for y = -5:5
-%                 if mask(round(xloc(i) + x),round(yloc(i) + y)) == 0
-%                     locs = [locs,i];
-%                     break;
-%                 end
-%             end
-%         end
-%     end
-%     currPoints(locs) = [];
+    currPoints   = detectSURFFeatures(I, 'NumOctaves', 8, 'ROI', roi,'MetricThreshold',500);
+%     currPoints   = detectKAZEFeatures(I);
+    yloc = currPoints.Location(:,1);
+    xloc = currPoints.Location(:,2);
+    locs = [];
+    border_size = 10;
+    for i = 1:length(xloc)
+        for x = -border_size:border_size
+            for y = -border_size:border_size
+                if round(xloc(i) + x) > 1200 || round(xloc(i) + x) < 0
+                    continue;
+                end
+                if round(yloc(i) + y) > 1600 || round(yloc(i) + y) < 0
+                    continue;
+                end
+                if mask(round(xloc(i) + x),round(yloc(i) + y)) == 0
+                    locs = [locs,i];
+                    break;
+                end
+            end
+        end
+    end
+    currPoints(locs) = [];
     currFeatures = extractFeatures(I, currPoints, 'Upright', true);
     
     %Temp for debug
@@ -38,7 +46,7 @@ function [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frame
     plot(currPoints.selectStrongest(50));
 
     indexPairs = matchFeatures(prevFeatures, currFeatures, ...
-        'MaxRatio', .7, 'Unique',  true);
+        'MaxRatio', .8, 'Unique',  true);
     
     % Select matched points.
     matchedPoints1 = prevPoints(indexPairs(:, 1));
@@ -49,7 +57,8 @@ function [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frame
     % the cameras in the previous view and the current view is set to 1.
     % This will be corrected by the bundle adjustment.
     [relativeOrient, relativeLoc, inlierIdx] = helperEstimateRelativePose(...
-        matchedPoints1, matchedPoints2, cameraParam);
+        matchedPoints1, matchedPoints2, cameraParam,Load_camera_frame(camera,4 + frame - 2),I);
+    
     
     % Add the current view to the view set.
     vSet = addView(vSet, vSet.NumViews + 1, 'Points', currPoints);
@@ -77,13 +86,16 @@ function [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frame
     camPoses = poses(vSet);
 
     % Triangulate initial locations for the 3-D world points.
-    xyzPoints = triangulateMultiview(tracks, camPoses, intrinsics);
+    xyzPoints = triangulateMultiview(tracks, camPoses, intrinsics_vector);
     
-    % Refine the 3-D world points and camera poses.
-%     [xyzPoints, camPoses, reprojectionErrors] = bundleAdjustment(xyzPoints, ...
-%         tracks, camPoses, intrinsics, 'FixedViewId', 1, ...
-%         'PointsUndistorted', true);
     reprojectionErrors = [];
+    % Refine the 3-D world points and camera poses.
+    [xyzPoints, camPoses, reprojectionErrors] = bundleAdjustment(xyzPoints, ...
+        tracks, camPoses, intrinsics_vector, 'FixedViewId', 1, ...
+        'PointsUndistorted', true);
+
+
+    
     % Store the refined camera poses.
     vSet = updateView(vSet, camPoses);
 

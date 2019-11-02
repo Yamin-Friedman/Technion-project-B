@@ -1,11 +1,12 @@
 bar = waitbar(0,"progress");
+%figure;
 for j = 0:11
     waitbar(j*66/(12*66),bar);
     
     
     se = strel('disk',10);
-    se2 = strel('disk',15);
-    se3 = strel('square',80);
+    se2 = strel('disk',80);
+    se3 = strel('square',100);
     %orig_masks = zeros(1200,1600,56);
     
     % save all foreground masks and images
@@ -26,10 +27,15 @@ for j = 0:11
         Mask = step(detector, I);
         images(:,:,:,i - 4) = I;
         %    orig_masks(:,:,i - 4) = Mask;
-        Mask = imclose(Mask,se);
+        Mask = imdilate(Mask,se);
         Mask = imclose(Mask,se2);
-        Mask = imclose(Mask,se3);
         Mask = imfill(Mask,'holes');
+        Mask = imclose(Mask,se2);
+        Mask = imclose(Mask,se);
+        Mask = imclose(Mask,se3);
+        Mask = imdilate(Mask,se);
+        Mask = imfill(Mask,'holes');
+%        imshow(uint8(Mask).*I,[])
         masks(:,:,i - 4) = Mask;
         waitbar((j*66 + i)/(12*66),bar);
     end
@@ -39,10 +45,15 @@ for j = 0:11
         images(:,:,:,i - 4) = I;
         Mask = step(detector, I);
         %    orig_masks(:,:,i - 4) = Mask;
-        Mask = imclose(Mask,se);
+        Mask = imdilate(Mask,se);
         Mask = imclose(Mask,se2);
-        Mask = imclose(Mask,se3);
         Mask = imfill(Mask,'holes');
+        Mask = imclose(Mask,se2);
+        Mask = imclose(Mask,se);
+        Mask = imclose(Mask,se3);
+        Mask = imdilate(Mask,se);
+        Mask = imfill(Mask,'holes');
+%        imshow(uint8(Mask).*I,[])
         masks(:,:,i - 4) = Mask;
         waitbar((j*66 + i)/(12*66),bar);
     end
@@ -63,10 +74,15 @@ for j = 0:11
         images(:,:,:,i - 4) = I;
         Mask = step(detector, I);
         %    orig_masks(:,:,i - 4) = Mask;
-        Mask = imclose(Mask,se);
+        Mask = imdilate(Mask,se);
         Mask = imclose(Mask,se2);
-        Mask = imclose(Mask,se3);
         Mask = imfill(Mask,'holes');
+        Mask = imclose(Mask,se2);
+        Mask = imclose(Mask,se);
+        Mask = imclose(Mask,se3);
+        Mask = imdilate(Mask,se);
+        Mask = imfill(Mask,'holes');
+%        imshow(uint8(Mask).*I,[])
         masks(:,:,i - 4) = Mask;
         waitbar((j*66 + (99-i))/(12*66),bar);
     end
@@ -91,7 +107,7 @@ for j = 0:11
     else
         mask_filename = strcat('Dry\0',int2str(j),'\masks');
     end
-    save(mask_filename,'masks');
+     save(mask_filename,'masks');
     
 end
 waitbar(1,bar);

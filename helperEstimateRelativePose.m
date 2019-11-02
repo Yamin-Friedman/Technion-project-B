@@ -28,7 +28,7 @@
 % Copyright 2016 The MathWorks, Inc. 
 
 function [orientation, location, inlierIdx] = ...
-    helperEstimateRelativePose(matchedPoints1, matchedPoints2, cameraParams)
+    helperEstimateRelativePose(matchedPoints1, matchedPoints2, cameraParams,I1,I2)
 
 if ~isnumeric(matchedPoints1)
     matchedPoints1 = matchedPoints1.Location;
@@ -41,7 +41,8 @@ end
 for i = 1:100
     % Estimate the essential matrix.    
     [E, inlierIdx] = estimateEssentialMatrix(matchedPoints1, matchedPoints2,...
-        cameraParams,'Confidence',95,'MaxDistance',0.5);
+        cameraParams,'Confidence',70,'MaxDistance',2);
+    
 
     % Make sure we get enough inliers
     if sum(inlierIdx) / numel(inlierIdx) < .3
@@ -50,21 +51,23 @@ for i = 1:100
     
     % Get the epipolar inliers.
     inlierPoints1 = matchedPoints1(inlierIdx, :);
-    inlierPoints2 = matchedPoints2(inlierIdx, :);    
+    inlierPoints2 = matchedPoints2(inlierIdx, :);
+    figure;
+    showMatchedFeatures(I1,I2,inlierPoints1,inlierPoints2);
     
     % Compute the camera pose from the fundamental matrix. Use half of the
     % points to reduce computation.
     [orientation, location, validPointFraction] = ...
         relativeCameraPose(E, cameraParams, inlierPoints1(1:2:end, :),...
-        inlierPoints2(1:2:end, :))
+        inlierPoints2(1:2:end, :));
 
     % validPointFraction is the fraction of inlier points that project in
     % front of both cameras. If the this fraction is too small, then the
     % fundamental matrix is likely to be incorrect.
-    if validPointFraction >= .8
+    if validPointFraction >= .7
        return;
     end
 end
 
 % After 100 attempts validPointFraction is still too low.
-%error('Unable to compute the Essential matrix');
+error('Unable to compute the Essential matrix');
