@@ -52,8 +52,7 @@ for i = 1:100
     % Get the epipolar inliers.
     inlierPoints1 = matchedPoints1(inlierIdx, :);
     inlierPoints2 = matchedPoints2(inlierIdx, :);
-    figure;
-    showMatchedFeatures(I1,I2,inlierPoints1,inlierPoints2);
+%     showMatchedFeatures(I1,I2,inlierPoints1,inlierPoints2);
     
     % Compute the camera pose from the fundamental matrix. Use half of the
     % points to reduce computation.

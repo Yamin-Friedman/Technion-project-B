@@ -1,4 +1,4 @@
-function [tracker,vSet,prevPoints] = Add_frame_to_tracker(camera,frame,tracker,vSet,vSet_num,prevPoints)
+function [tracker,vSet] = Add_frame_to_tracker(camera,frame,tracker,vSet,vSet_num,prevPoints)
 %Add_frame_to_tracker Summary of this function goes here
 
     masks = Load_masks_file(camera);
@@ -15,7 +15,9 @@ function [tracker,vSet,prevPoints] = Add_frame_to_tracker(camera,frame,tracker,v
     [currPoints, validIdx] = step(tracker, I);
     
     % Clear the old matches between the points.
-    vSet = updateConnection(vSet, vSet_num, vSet_num+1, 'Matches', zeros(0, 2));
+    if vSet_num < vSet.NumViews
+        vSet = updateConnection(vSet, vSet_num, vSet_num+1, 'Matches', zeros(0, 2));
+    end
 
     vSet = updateView(vSet, vSet_num, 'Points', currPoints);
     

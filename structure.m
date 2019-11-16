@@ -1,12 +1,11 @@
 clc;
-figure;
 bar = waitbar(0,"progress");
 
 % setup params
 start_camera = 0;%Starting camera
 num_camera = 1;
 start_frame = 7;%Starting frame
-num_frames = 0;%Number of frames to traverse
+num_frames = 5;%Number of frames to traverse
 direction = 1;%Direction of traversal
 frame_jump = 2;%Number of frames to skip
 
@@ -16,6 +15,13 @@ frame_jump = 2;%Number of frames to skip
 %[prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors,intrinsics_vector] = Add_frames_to_set_single_frame(start_frame + (frame_jump * num_frames) + 2,start_camera,num_camera,direction,prevPoints,prevFeatures,vSet,intrinsics_vector);
 %[prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors,intrinsics_vector] = Add_frames_to_set_single_camera(start_camera + num_camera,start_frame + (frame_jump * num_frames),num_frames,frame_jump,-direction,prevPoints,prevFeatures,vSet,intrinsics_vector);
 % [prevPoints,prevFeatures,vSet,xyzPoints,reprojectionErrors] = Add_frames_to_set_by_camera_arc(frame,num_frames,prevPoints,prevFeatures,vSet);
+[tracker,vSet,prevPoints] = Init_tracker(start_camera,start_frame - 2,vSet);
+vSet_num = 2;
+for frame = start_frame:frame_jump:start_frame + num_frames*frame_jump
+    [tracker,vSet] = Add_frame_to_tracker(start_camera,frame,tracker,vSet,vSet_num,prevPoints);
+    vSet_num = vSet_num + 1;
+end
+
 waitbar(1,bar);
 
 % reference
@@ -49,7 +55,7 @@ waitbar(1,bar);
 %%
 [xyzPoints] = show_camera_locations(vSet,xyzPoints,reprojectionErrors);
 %%
-
+load_intrinsics;
 % Find point tracks across all views.
 tracks = findTracks(vSet);
 
@@ -70,7 +76,7 @@ plotCamera(camPoses, 'Size', 0.2);
 hold on
 
 % Exclude noisy 3-D world points.
-goodIdx = (reprojectionErrors < 5);
+% goodIdx = (reprojectionErrors < 5);
 
 % Display the dense 3-D world points.
 pcshow(xyzPoints(goodIdx, :), 'VerticalAxis', 'y', 'VerticalAxisDir', 'down', ...
